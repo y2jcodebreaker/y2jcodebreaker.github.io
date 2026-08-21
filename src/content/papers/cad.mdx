@@ -1,0 +1,45 @@
+---
+title: "Contrastive Activation Decomposition: Activation Steering Mitigation by Leveraging Bias Geometry"
+authors: ["Kedar Joshi", "Kripabandhu Ghosh"]
+firstAuthor: true
+year: 2026
+thread: representations
+status: preprint
+tldr: >-
+  Bias is not one direction. Measuring its geometry first predicts which
+  intervention will work: housing bias is near rank-1, medicalization spans
+  40+ dimensions.
+order: 1
+pdf: /papers/cad.pdf
+---
+
+## The question
+
+Activation steering removes unwanted behaviour from a language model at
+inference time by subtracting a direction from its activations. The methods
+that do this — CAA, FairSteer, SADI, Angular Steering — each commit to a fixed
+intervention structure, and each works on some bias types while failing on
+others. None of them tests whether the bias it targets actually has the shape
+the method assumes.
+
+## The approach
+
+CAD applies SVD to the matrix of activation differences between contrastive
+prompt pairs, and reads three statistics off the resulting spectrum: the
+top-1 variance ratio, the number of components needed for 80% of the variance,
+and how that number evolves across layers. Together these prescribe the
+intervention rank and the target layers before any steered generation runs.
+
+## What was found
+
+Bias geometry varies systematically by type. Housing discrimination
+concentrates in a near rank-1 subspace; medicalization of disability spreads
+across more than forty dimensions. That difference, not the choice of method,
+explains why rank-1 steering succeeds on one and fails on the other.
+
+## Limitations
+
+Two of nine AccessEval categories do not reach significance. The DiscrimEval
+housing result equalises approval by saturating it, which illustrates the
+concentrated-bias prediction rather than demonstrating fair allocation. One
+architecture shows a documented sign inversion.

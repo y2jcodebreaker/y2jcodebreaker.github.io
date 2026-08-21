@@ -1,0 +1,43 @@
+---
+title: "Don't Judge a Book by its Cover: Testing LLMs' Robustness Under Logical Obfuscation"
+authors: ["Abhilekh Borah", "Shubhra Ghosh", "Kedar Joshi", "Aditya Kumar Guru", "Kripabandhu Ghosh"]
+equalContrib: ["Shubhra Ghosh", "Kedar Joshi", "Aditya Kumar Guru"]
+year: 2026
+thread: reasoning
+status: published
+venue: EACL 2026
+tldr: >-
+  Frontier models lose up to 86% accuracy when a problem is restated in a
+  logically equivalent form. Confidence collapses in late layers.
+source: "Figure 2 (zero-shot relative accuracy); Section 5, layer-wise analysis"
+order: 1
+pdf: /papers/logiqate.pdf
+code: https://github.com/abhilekhborah/logical-obfuscation
+data: https://huggingface.co/datasets/abhilekhborah/LogiQAte
+---
+
+## The question
+
+A model that answers a logic puzzle correctly may have reasoned about it, or
+may have seen it before. Standard benchmarks score only the final answer, so
+both look identical.
+
+## The approach
+
+Logifus rewrites a problem into a different surface form while preserving its
+logical structure — "D is the father of F" becomes "D is the grandfather's
+only son of F". LogiQAte applies this across 1,108 questions and four task
+types: first-order logic entailment, family-graph reasoning, numeric pattern
+induction, and navigation.
+
+## What was found
+
+Performance degrades consistently under rewriting. Memorization detection
+rates rise sharply on obfuscated items, and layer-wise next-token confidence
+collapses in the late layers where reasoning would be expected to consolidate.
+
+## Limitations
+
+Obfuscation is generated algorithmically, so difficulty is not controlled
+independently of surface form. The four task types are drawn from structured
+reasoning problems and do not cover open-ended reasoning.
