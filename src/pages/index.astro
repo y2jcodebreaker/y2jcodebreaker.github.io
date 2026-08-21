@@ -1,11 +1,10 @@
 ---
+import Base from '../layouts/Base.astro';
+import { loadProfile } from '../lib/data';
+
+const profile = loadProfile();
 ---
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <title>Kedar Joshi</title>
-  </head>
-  <body>
-    <h1>Kedar Joshi</h1>
-  </body>
-</html>
+<Base title={profile.name} description={profile.role}>
+  <h1>{profile.name}</h1>
+  <p class="muted">{profile.role}</p>
+</Base>

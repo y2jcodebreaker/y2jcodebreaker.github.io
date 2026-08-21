@@ -1,0 +1,50 @@
+:root {
+  --font-serif: "Source Serif 4", Georgia, "Times New Roman", serif;
+
+  --size-base: 1rem;        /* 16px floor — accessibility requirement */
+  --size-sm: 0.875rem;
+  --size-lg: 1.2rem;
+  --size-xl: 1.44rem;
+  --size-title: 1.75rem;    /* nothing on the site exceeds this */
+
+  --measure: 34rem;
+  --leading: 1.6;
+
+  --space-1: 0.5rem;
+  --space-2: 1rem;
+  --space-3: 1.75rem;
+  --space-4: 3rem;
+  --space-5: 5rem;
+
+  --ink: #1a1a1a;
+  --ink-muted: #5a5a5a;
+  --paper: #fdfcf9;
+  --rule: #d8d5cd;
+  --accent: #7a2e1e;        /* links only */
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ink: #e8e6e1;
+    --ink-muted: #9c9890;
+    --paper: #16161a;
+    --rule: #33333a;
+    --accent: #d99b7f;
+  }
+}
+
+:root[data-theme="dark"] {
+  --ink: #e8e6e1;
+  --ink-muted: #9c9890;
+  --paper: #16161a;
+  --rule: #33333a;
+  --accent: #d99b7f;
+}
+
+:root[data-theme="light"] {
+  --ink: #1a1a1a;
+  --ink-muted: #5a5a5a;
+  --paper: #fdfcf9;
+  --rule: #d8d5cd;
+  --accent: #7a2e1e;
+}
