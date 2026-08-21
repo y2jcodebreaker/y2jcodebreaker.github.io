@@ -30,12 +30,28 @@ top-1 variance ratio, the number of components needed for 80% of the variance,
 and how that number evolves across layers. Together these prescribe the
 intervention rank and the target layers before any steered generation runs.
 
+<Figure
+  src="/figures/cad-teaser.webp"
+  alt="Diagram of the CAD pipeline: contrastive prompt pairs, SVD of activation differences, a singular value spectrum, and a prescribed multi-rank projection."
+  caption="CAD reads the singular value spectrum of contrastive activation differences, then prescribes the intervention rank and target layers from it before any steered generation runs."
+  width={848}
+  height={526}
+/>
+
 ## What was found
 
 Bias geometry varies systematically by type. Housing discrimination
 concentrates in a near rank-1 subspace; medicalization of disability spreads
 across more than forty dimensions. That difference, not the choice of method,
 explains why rank-1 steering succeeds on one and fails on the other.
+
+<Figure
+  src="/figures/cad-multirank.webp"
+  alt="Comparison of rank-1 projection against multi-rank projection on the AccessEval medicalization benchmark."
+  caption="Rank-1 projection fails on medicalization bias because the bias spans more than forty dimensions. The multi-rank projection captures the full subspace."
+  width={1592}
+  height={1065}
+/>
 
 ## Limitations
 

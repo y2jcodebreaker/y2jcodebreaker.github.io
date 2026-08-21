@@ -1,0 +1,62 @@
+---
+import type { CollectionEntry } from 'astro:content';
+import Base from './Base.astro';
+import AuthorList from '../components/AuthorList.astro';
+
+interface Props { entry: CollectionEntry<'papers'>; }
+const { entry } = Astro.props;
+const p = entry.data;
+
+const statusLabel =
+  p.status === 'published' ? p.venue :
+  p.status === 'patent' ? 'Patent application' :
+  'Preprint';
+
+const links = [
+  p.pdf ? { href: p.pdf, label: 'PDF' } : null,
+  p.code ? { href: p.code, label: 'Code' } : null,
+  p.data ? { href: p.data, label: 'Dataset' } : null,
+  p.doi ? { href: p.doi, label: 'DOI' } : null,
+].filter(Boolean) as { href: string; label: string }[];
+---
+<Base title={`${p.title} — Kedar Joshi`} description={p.tldr}>
+  <slot name="head" slot="head" />
+
+  <p class="back"><a href="/">← Kedar Joshi</a></p>
+
+  <article>
+    <h1>{p.title}</h1>
+    <AuthorList paper={p} />
+    <p class="meta muted">{statusLabel} · {p.year}</p>
+
+    {links.length > 0 && (
+      <p class="links">
+        {links.map((l, i) => (
+          <>{i > 0 ? <span aria-hidden="true"> · </span> : ''}<a href={l.href}>{l.label}</a></>
+        ))}
+      </p>
+    )}
+
+    <div class="body"><slot /></div>
+
+    {p.bibtex && (
+      <section>
+        <h2>BibTeX</h2>
+        <pre><code>{p.bibtex}</code></pre>
+      </section>
+    )}
+  </article>
+</Base>
+
+<style>
+  .back { font-size: var(--size-sm); margin-bottom: var(--space-3); }
+  .meta, .links { font-size: var(--size-sm); margin: var(--space-1) 0; }
+  .body { margin-top: var(--space-3); }
+  .body :global(h2) { margin-top: var(--space-3); margin-bottom: var(--space-1); }
+  pre {
+    overflow-x: auto;
+    font-size: var(--size-sm);
+    background: color-mix(in srgb, var(--ink) 5%, transparent);
+    padding: var(--space-2);
+  }
+</style>

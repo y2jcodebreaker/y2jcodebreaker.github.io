@@ -30,11 +30,27 @@ only son of F". LogiQAte applies this across 1,108 questions and four task
 types: first-order logic entailment, family-graph reasoning, numeric pattern
 induction, and navigation.
 
+<Figure
+  src="/figures/logiqate-intro.webp"
+  alt="A family-relation question shown in original and obfuscated form, with a plot of layer-wise next-token confidence falling under obfuscation."
+  caption="The same question, restated equivalently. The model answers the first correctly and the second incorrectly; its token-level confidence drops sharply as the rewritten form is processed."
+  width={1492}
+  height={963}
+/>
+
 ## What was found
 
 Performance degrades consistently under rewriting. Memorization detection
 rates rise sharply on obfuscated items, and layer-wise next-token confidence
 collapses in the late layers where reasoning would be expected to consolidate.
+
+<Figure
+  src="/figures/logiqate-degradation.webp"
+  alt="Bar chart of relative accuracy on obfuscated questions against base questions across five models and four tasks."
+  caption="Relative accuracy on rewritten questions, with base performance fixed at 1.00. Degradation is consistent across every task and every model tested."
+  width={1600}
+  height={483}
+/>
 
 ## Limitations
 
