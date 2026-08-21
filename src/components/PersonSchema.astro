@@ -1,0 +1,21 @@
+---
+import { loadProfile } from '../lib/data';
+
+const profile = loadProfile();
+const sameAs = Object.values(profile.links).filter(Boolean);
+
+const schema = {
+  '@context': 'https://schema.org',
+  '@type': 'Person',
+  name: profile.name,
+  email: `mailto:${profile.email}`,
+  affiliation: {
+    '@type': 'CollegeOrUniversity',
+    name: 'University of Southern California',
+  },
+  url: Astro.site?.href,
+  description: profile.positioning,
+  ...(sameAs.length > 0 ? { sameAs } : {}),
+};
+---
+<script type="application/ld+json" set:html={JSON.stringify(schema)} />

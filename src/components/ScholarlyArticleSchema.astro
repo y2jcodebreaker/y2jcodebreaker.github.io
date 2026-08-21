@@ -1,0 +1,19 @@
+---
+import type { Paper } from '../schemas/paper';
+
+interface Props { paper: Paper; url: string; }
+const { paper, url } = Astro.props;
+
+const schema = {
+  '@context': 'https://schema.org',
+  '@type': 'ScholarlyArticle',
+  headline: paper.title,
+  name: paper.title,
+  author: paper.authors.map((name) => ({ '@type': 'Person', name })),
+  datePublished: String(paper.year),
+  abstract: paper.tldr,
+  url,
+  ...(paper.venue ? { publication: paper.venue } : {}),
+};
+---
+<script type="application/ld+json" set:html={JSON.stringify(schema)} />

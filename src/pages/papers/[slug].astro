@@ -2,6 +2,8 @@
 import { getCollection, render } from 'astro:content';
 import Paper from '../../layouts/Paper.astro';
 import Figure from '../../components/Figure.astro';
+import ScholarlyArticleSchema from '../../components/ScholarlyArticleSchema.astro';
+import CitationMeta from '../../components/CitationMeta.astro';
 
 export async function getStaticPaths() {
   const papers = await getCollection('papers');
@@ -12,7 +14,13 @@ export async function getStaticPaths() {
 
 const { entry } = Astro.props;
 const { Content } = await render(entry);
+const pageUrl = new URL(Astro.url.pathname, Astro.site).href;
+const pdfUrl = entry.data.pdf ? new URL(entry.data.pdf, Astro.site).href : undefined;
 ---
 <Paper entry={entry}>
+  <Fragment slot="head">
+    <ScholarlyArticleSchema paper={entry.data} url={pageUrl} />
+    <CitationMeta paper={entry.data} pdfUrl={pdfUrl} />
+  </Fragment>
   <Content components={{ Figure }} />
 </Paper>

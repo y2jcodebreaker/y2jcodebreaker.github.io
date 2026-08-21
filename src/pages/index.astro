@@ -2,6 +2,7 @@
 import { getCollection } from 'astro:content';
 import Base from '../layouts/Base.astro';
 import ResearchThread from '../components/ResearchThread.astro';
+import PersonSchema from '../components/PersonSchema.astro';
 import { loadProfile } from '../lib/data';
 import { isRendered } from '../lib/papers';
 
@@ -30,6 +31,7 @@ const contactLinks = [
 ].filter(Boolean) as { href: string; label: string }[];
 ---
 <Base title={profile.name} description={profile.positioning}>
+  <PersonSchema slot="head" />
   <header class="intro">
     <h1>{profile.name}</h1>
     <p class="role muted">{profile.role}</p>
