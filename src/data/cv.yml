@@ -1,0 +1,52 @@
+education:
+  - heading: University of Southern California
+    subheading: MS in Computer Science
+    location: Los Angeles, CA
+    dates: Aug 2026 – May 2028
+    bullets: []
+  - heading: Manipal University Jaipur
+    subheading: B.Tech in Computer Science, with Distinction
+    location: Jaipur, India
+    dates: Graduated May 2026
+    bullets:
+      - CGPA 8.88/10
+
+experience:
+  - heading: Indian Institute of Science Education and Research, Kolkata
+    subheading: Research Intern
+    dates: May 2025 – Nov 2025
+    bullets:
+      - LLM reasoning robustness and mechanistic interpretability.
+  - heading: India Meteorological Department, Bhopal
+    subheading: Research Intern
+    dates: Nov 2024 – Present
+    bullets:
+      - Physics-informed neural architecture search for radar wind reconstruction.
+
+skills:
+  - label: Languages
+    items: [Python, C]
+  - label: Frameworks
+    items: [PyTorch, TensorFlow, HuggingFace Transformers]
+  - label: Libraries
+    items: [NumPy, Pandas, scikit-learn, OpenCV, Matplotlib, Unsloth]
+  - label: Areas
+    items:
+      - LLM evaluation
+      - Mechanistic interpretability
+      - Physics-informed neural networks
+      - Neural architecture search
+
+certifications:
+  - heading: Generative AI with Large Language Models
+    subheading: DeepLearning.AI & AWS
+    dates: Feb 2025
+  - heading: Prediction and Control with Function Approximation
+    subheading: University of Alberta
+    dates: Dec 2024
+  - heading: Sample-based Learning Methods
+    subheading: University of Alberta
+    dates: Nov 2024
+  - heading: Fundamentals of Reinforcement Learning
+    subheading: University of Alberta
+    dates: Nov 2024
