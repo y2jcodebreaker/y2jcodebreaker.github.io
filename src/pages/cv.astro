@@ -1,0 +1,60 @@
+---
+import Base from '../layouts/Base.astro';
+import { loadCv, loadProfile } from '../lib/data';
+
+const profile = loadProfile();
+const cv = loadCv();
+
+const sections = [
+  { title: 'Education', entries: cv.education },
+  { title: 'Experience', entries: cv.experience },
+  { title: 'Certifications', entries: cv.certifications },
+];
+---
+<Base title={`CV — ${profile.name}`} description={`Curriculum vitae for ${profile.name}`}>
+  <p class="back"><a href="/">← {profile.name}</a></p>
+
+  <h1>Curriculum Vitae</h1>
+  <p class="muted download"><a href="/cv.pdf">Download PDF</a></p>
+
+  {sections.map((section) => section.entries.length > 0 && (
+    <section>
+      <h2>{section.title}</h2>
+      {section.entries.map((e) => (
+        <div class="entry">
+          <h3 class="entry-head">
+            {e.heading}
+            {e.dates ? <span class="dates muted">{e.dates}</span> : null}
+          </h3>
+          {e.subheading ? <p class="sub muted">{e.subheading}{e.location ? `, ${e.location}` : ''}</p> : null}
+          {e.bullets.length > 0 && (
+            <ul>{e.bullets.map((b) => <li>{b}</li>)}</ul>
+          )}
+        </div>
+      ))}
+    </section>
+  ))}
+
+  {cv.skills.length > 0 && (
+    <section>
+      <h2>Skills</h2>
+      {cv.skills.map((group) => (
+        <p class="skill"><span class="skill-label">{group.label}:</span> {group.items.join(', ')}</p>
+      ))}
+    </section>
+  )}
+</Base>
+
+<style>
+  .back, .download { font-size: var(--size-sm); }
+  .download { margin-bottom: var(--space-3); }
+  section { margin-bottom: var(--space-4); }
+  section h2 { margin-bottom: var(--space-2); }
+  .entry { margin-bottom: var(--space-3); }
+  .entry-head { display: flex; justify-content: space-between; gap: var(--space-2); align-items: baseline; }
+  .dates { font-size: var(--size-sm); white-space: nowrap; font-weight: 400; }
+  .sub { margin: 0 0 var(--space-1); font-size: var(--size-sm); }
+  ul { margin: var(--space-1) 0; padding-left: 1.2em; }
+  .skill { margin-bottom: var(--space-1); }
+  .skill-label { color: var(--ink-muted); }
+</style>
