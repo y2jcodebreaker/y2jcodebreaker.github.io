@@ -12,12 +12,17 @@ test('the unrendered paper does not appear', async ({ page }) => {
   await expect(page.getByText('Perturbation-Aware Fine-Tuning')).toHaveCount(0);
 });
 
-test('the preprint shows no venue or review status', async ({ page }) => {
+test('the preprint shows no venue or review status anywhere in the document', async ({ page }) => {
   await page.goto('/papers/cad');
-  const body = await page.locator('body').innerText();
-  expect(body.toLowerCase()).not.toContain('aaai');
-  expect(body.toLowerCase()).not.toContain('under review');
-  expect(body.toLowerCase()).not.toContain('submitted');
+
+  // Full serialised HTML — includes <head>, meta tags and JSON-LD,
+  // which body.innerText() silently excludes.
+  const html = (await page.content()).toLowerCase();
+  for (const forbidden of ['aaai', 'under review', 'submitted for', 'in submission']) {
+    expect(html, `forbidden string "${forbidden}" found in /papers/cad`).not.toContain(forbidden);
+  }
+
+  // The status label must still be present and correct.
   await expect(page.getByText('Preprint')).toBeVisible();
 });
 
@@ -36,7 +41,7 @@ test('cv page and pdf both resolve', async ({ page }) => {
 });
 
 test('no horizontal scroll at mobile width', async ({ page }) => {
-  await page.setViewportSize({ width: 360, height: 800 });
+  await page.setViewportSize({ width: 320, height: 800 });
   await page.goto('/');
   const overflow = await page.evaluate(
     () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
