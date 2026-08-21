@@ -1,10 +1,79 @@
 ---
+import { getCollection } from 'astro:content';
 import Base from '../layouts/Base.astro';
+import ResearchThread from '../components/ResearchThread.astro';
 import { loadProfile } from '../lib/data';
+import { isRendered } from '../lib/papers';
 
 const profile = loadProfile();
+
+const allPapers = (await getCollection('papers')).filter((e) => isRendered(e.data));
+const threads = (await getCollection('threads')).sort((a, b) => a.data.order - b.data.order);
+
+/** A paper earns a detail page when its Markdown body has content. */
+const detailIds = allPapers.filter((e) => e.body && e.body.trim().length > 0).map((e) => e.id);
+
+const byThread = (key: string) =>
+  allPapers
+    .filter((e) => e.data.thread === key)
+    .sort((a, b) => (a.data.order! - b.data.order!) || (b.data.year - a.data.year));
+
+const earlier = byThread('earlier');
+
+const contactLinks = [
+  { href: '/cv', label: 'CV' },
+  { href: '/cv.pdf', label: 'CV (PDF)' },
+  profile.links.scholar ? { href: profile.links.scholar, label: 'Google Scholar' } : null,
+  profile.links.github ? { href: profile.links.github, label: 'GitHub' } : null,
+  profile.links.orcid ? { href: profile.links.orcid, label: 'ORCID' } : null,
+  { href: `mailto:${profile.email}`, label: profile.email },
+].filter(Boolean) as { href: string; label: string }[];
 ---
-<Base title={profile.name} description={profile.role}>
-  <h1>{profile.name}</h1>
-  <p class="muted">{profile.role}</p>
+<Base title={profile.name} description={profile.positioning}>
+  <header class="intro">
+    <h1>{profile.name}</h1>
+    <p class="role muted">{profile.role}</p>
+    <p class="positioning">{profile.positioning}</p>
+    {profile.currently ? <p class="positioning">{profile.currently}</p> : null}
+  </header>
+
+  <hr />
+
+  {threads.map((thread) => {
+    const papers = byThread(thread.data.key);
+    return papers.length > 0 ? (
+      <ResearchThread
+        title={thread.data.title}
+        blurb={thread.data.blurb}
+        papers={papers}
+        detailIds={detailIds}
+      />
+    ) : null;
+  })}
+
+  {earlier.length > 0 && (
+    <ResearchThread title="Earlier" papers={earlier} detailIds={detailIds} />
+  )}
+
+  <hr />
+
+  <footer class="contact">
+    {profile.photo && (
+      <img class="photo" src={profile.photo} alt={`Portrait of ${profile.name}`}
+           width="96" height="96" loading="lazy" decoding="async" />
+    )}
+    <p>
+      {contactLinks.map((l, i) => (
+        <>{i > 0 ? <span aria-hidden="true"> · </span> : ''}<a href={l.href}>{l.label}</a></>
+      ))}
+    </p>
+  </footer>
 </Base>
+
+<style>
+  .intro { margin-bottom: var(--space-3); }
+  .role { margin: var(--space-1) 0 var(--space-3); }
+  .positioning { margin-bottom: var(--space-2); }
+  .contact { font-size: var(--size-sm); display: flex; gap: var(--space-2); align-items: center; }
+  .photo { width: 96px; height: 96px; flex: 0 0 auto; border-radius: 2px; }
+</style>

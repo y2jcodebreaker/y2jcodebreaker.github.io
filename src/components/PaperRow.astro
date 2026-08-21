@@ -1,0 +1,44 @@
+---
+import type { CollectionEntry } from 'astro:content';
+import AuthorList from './AuthorList.astro';
+
+interface Props { entry: CollectionEntry<'papers'>; hasDetail: boolean; }
+const { entry, hasDetail } = Astro.props;
+const p = entry.data;
+
+const statusLabel =
+  p.status === 'published' ? p.venue :
+  p.status === 'patent' ? 'patent filed' :
+  'preprint';
+
+const links = [
+  hasDetail ? { href: `/papers/${entry.id}`, label: 'Details' } : null,
+  p.pdf ? { href: p.pdf, label: 'PDF' } : null,
+  p.code ? { href: p.code, label: 'Code' } : null,
+  p.data ? { href: p.data, label: 'Dataset' } : null,
+  p.doi ? { href: p.doi, label: 'DOI' } : null,
+].filter(Boolean) as { href: string; label: string }[];
+---
+<article class="paper">
+  <h3 class="title">
+    {p.title}
+    {statusLabel ? <span class="status muted">{statusLabel}</span> : null}
+  </h3>
+  <AuthorList paper={p} />
+  <p class="tldr">{p.tldr}</p>
+  {links.length > 0 && (
+    <p class="links">
+      {links.map((l, i) => (
+        <>{i > 0 ? <span aria-hidden="true"> · </span> : ''}<a href={l.href}>{l.label}</a></>
+      ))}
+    </p>
+  )}
+</article>
+
+<style>
+  .paper { margin: 0 0 var(--space-3); }
+  .title { display: flex; justify-content: space-between; gap: var(--space-2); align-items: baseline; }
+  .status { font-size: var(--size-sm); white-space: nowrap; font-weight: 400; }
+  .tldr { margin: var(--space-1) 0; }
+  .links { font-size: var(--size-sm); margin: 0; }
+</style>

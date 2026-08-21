@@ -1,0 +1,24 @@
+---
+import type { CollectionEntry } from 'astro:content';
+import PaperRow from './PaperRow.astro';
+
+interface Props {
+  title: string;
+  blurb?: string;
+  papers: CollectionEntry<'papers'>[];
+  detailIds: string[];
+}
+const { title, blurb, papers, detailIds } = Astro.props;
+---
+<section class="thread">
+  <h2>{title}</h2>
+  {blurb ? <p class="blurb muted">{blurb}</p> : null}
+  {papers.map((entry) => (
+    <PaperRow entry={entry} hasDetail={detailIds.includes(entry.id)} />
+  ))}
+</section>
+
+<style>
+  .thread { margin: 0 0 var(--space-4); }
+  .blurb { margin: var(--space-1) 0 var(--space-3); }
+</style>
