@@ -1,0 +1,26 @@
+---
+import type { Paper } from '../schemas/paper';
+import { formatAuthors, contributionNote } from '../lib/authors';
+import { loadProfile } from '../lib/data';
+
+interface Props { paper: Paper; }
+const { paper } = Astro.props;
+const self = loadProfile().name;
+const tokens = formatAuthors(paper, self);
+const note = contributionNote(paper, self);
+---
+<p class="muted authors">
+  {tokens.map((t, i) => (
+    <>
+      {i > 0 ? ', ' : ''}
+      {t.isSelf ? <span class="self">{t.name}</span> : t.name}
+    </>
+  ))}
+  {note ? <span class="note"> — {note}</span> : null}
+</p>
+
+<style>
+  .authors { font-size: var(--size-sm); }
+  .self { color: var(--ink); }
+  .note { font-style: italic; }
+</style>
