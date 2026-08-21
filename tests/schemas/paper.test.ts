@@ -63,6 +63,27 @@ describe('paperSchema — claim discipline guard', () => {
     });
     expect(result.success).toBe(true);
   });
+
+  it('rejects an unspaced decimal effect size with no source', () => {
+    const result = paperSchema.safeParse({
+      ...base, tldr: 'Matches CAA debiasing at d=0.337 with no per-task sweep.',
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects a decimal at the start of the string with no source', () => {
+    const result = paperSchema.safeParse({
+      ...base, tldr: '0.86 accuracy on FaceForensics++ HQ without a CNN forward pass.',
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('catches decimals in library/tool versions as quantitative claims', () => {
+    const result = paperSchema.safeParse({
+      ...base, tldr: 'Evaluated with PyTorch 2.1 on Qwen2.5-7B and Gemma-2-9B.',
+    });
+    expect(result.success).toBe(false);
+  });
 });
 
 describe('paperSchema — field constraints', () => {

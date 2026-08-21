@@ -5,8 +5,13 @@ import { z } from 'zod';
  * Deliberately does NOT match incidental digits in names and ranges
  * (GPT-4o, Celeb-DF (v2), 245K-50M, Llama-3.1-8B). A naive /\d/ would fire
  * on all of those and train the author to ignore the guard, defeating it.
+ *
+ * Strategy: Use negative lookbehind to exclude decimals glued to existing tokens.
+ * A decimal is "incidental" only when preceded by alphanumeric/hyphen/dot (token-internal).
+ * Decimals preceded by space, equals, or string-initial trigger the guard.
+ * This allows "d=0.337" and "0.86 accuracy" to correctly require sources.
  */
-export const QUANTITATIVE_CLAIM = /%|\s\d+\.\d+/;
+export const QUANTITATIVE_CLAIM = /%|(?<![A-Za-z0-9.-])\d+\.\d+/;
 
 export const paperSchema = z
   .object({
