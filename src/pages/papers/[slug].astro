@@ -4,10 +4,15 @@ import Paper from '../../layouts/Paper.astro';
 import Figure from '../../components/Figure.astro';
 import ScholarlyArticleSchema from '../../components/ScholarlyArticleSchema.astro';
 import CitationMeta from '../../components/CitationMeta.astro';
+import { isRendered } from '../../lib/papers';
 
 export async function getStaticPaths() {
   const papers = await getCollection('papers');
   return papers
+    // `order: null` means authored but not published. Without this filter a
+    // suppressed paper still gets a public URL and a sitemap entry — the
+    // homepage listing hides it while the route publishes it anyway.
+    .filter((entry) => isRendered(entry.data))
     .filter((entry) => entry.body && entry.body.trim().length > 0)
     .map((entry) => ({ params: { slug: entry.id }, props: { entry } }));
 }
