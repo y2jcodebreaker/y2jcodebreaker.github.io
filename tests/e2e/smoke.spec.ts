@@ -12,17 +12,36 @@ test('the unrendered paper does not appear', async ({ page }) => {
   await expect(page.getByText('Perturbation-Aware Fine-Tuning')).toHaveCount(0);
 });
 
-test('the preprint shows no venue or review status anywhere in the document', async ({ page }) => {
+// Two papers are under review at venues with anonymity expectations, and the
+// site must disclose nothing about their submission status. Scoped to a single
+// page this guard once passed while a leak sat on a different one, so it now
+// covers every route.
+const REVIEW_STATUS_TERMS = [
+  'aaai',
+  'emnlp',
+  'under review',
+  'submitted for',
+  'in submission',
+  'camera-ready',
+  'camera ready',
+  'anonymity period',
+];
+
+for (const path of ['/', '/cv', '/papers/cad', '/papers/logiqate', '/papers/quantization-probe']) {
+  test(`no review-status disclosure anywhere in ${path}`, async ({ page }) => {
+    await page.goto(path);
+
+    // Full serialised HTML — includes <head>, meta tags and JSON-LD,
+    // which body.innerText() silently excludes.
+    const html = (await page.content()).toLowerCase();
+    for (const forbidden of REVIEW_STATUS_TERMS) {
+      expect(html, `forbidden string "${forbidden}" found in ${path}`).not.toContain(forbidden);
+    }
+  });
+}
+
+test('the preprint renders its status label', async ({ page }) => {
   await page.goto('/papers/cad');
-
-  // Full serialised HTML — includes <head>, meta tags and JSON-LD,
-  // which body.innerText() silently excludes.
-  const html = (await page.content()).toLowerCase();
-  for (const forbidden of ['aaai', 'under review', 'submitted for', 'in submission']) {
-    expect(html, `forbidden string "${forbidden}" found in /papers/cad`).not.toContain(forbidden);
-  }
-
-  // The status label must still be present and correct.
   await expect(page.getByText('Preprint')).toBeVisible();
 });
 
