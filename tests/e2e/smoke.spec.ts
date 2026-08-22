@@ -18,6 +18,7 @@ test('the unrendered paper does not appear', async ({ page }) => {
 // covers every route.
 const REVIEW_STATUS_TERMS = [
   'aaai',
+  'iclr',
   'emnlp',
   'under review',
   'submitted for',
