@@ -1,0 +1,81 @@
+---
+title: "The Misallocation of Precision in Quantized Language Models"
+authors: ["Kedar Joshi"]
+year: 2026
+thread: representations
+status: preprint
+tldr: >-
+  The Hessian signal GPTQ-family methods use to allocate precision is inverted
+  (ρ = −0.506): the layers they protect sit in a functional dead zone.
+source: "Section 5.6, Hessian Sensitivity Inversion, n=64"
+order: null
+---
+
+## The question
+
+GPTQ, OmniQuant, and ResQ allocate bit-width across layers using the
+activation-covariance Hessian trace as a per-layer sensitivity signal: layers
+with larger activation norms are judged more sensitive and are given more
+bits. The premise is that this proxy tracks which layers matter functionally.
+None of the three methods tests that premise against task performance —
+only against reconstruction error.
+
+## The approach
+
+Quantization is treated as a controlled perturbation probe, the way a focal
+lesion is used in neuroscience to identify which region supports which
+function. The model is fully NF4-quantized, then FP16 weights are surgically
+restored to one sub-layer at a time — one of 32 attention projections or 32
+MLP blocks — and task accuracy is measured after each restoration. Recovery
+is conditioned on forward-flipped examples: the subset of a benchmark correct
+under FP16 but wrong under 4-bit. Conditioning on the flip set is what makes
+recovery rates comparable across GSM8K, ARC-Challenge, and MATH despite their
+different absolute accuracies.
+
+<Figure
+  src="/figures/quant-hessian-inversion.webp"
+  alt="Scatter plot of restoration rank against Hessian sensitivity rank for all 64 sub-layers of Llama-3.1-8B, with attention layers as orange circles, MLP layers as purple squares, and a downward-sloping trend line."
+  caption="Restoration rank against Hessian sensitivity rank for all 64 sub-layers: the trend runs the wrong way (ρ = −0.506). Layers the Hessian proxy protects most sit in the functional dead zone; layers it deprioritizes are load-bearing."
+  width={1375}
+  height={1171}
+/>
+
+## What was found
+
+Restoration rank across all 64 sub-layers correlates with Hessian
+sensitivity rank at Spearman ρ = −0.506 (p < 0.001, n = 64): inverted, not
+merely absent. Under Benjamini–Hochberg FDR correction across 192 tests, the
+inversion resolves into a clean crossover — no attention layer survives for
+ARC, no MLP layer survives for GSM8K. Attention layers 13 and 14 are
+task-selective: 52.1% GSM8K recovery, under 15% on ARC and MATH. MLP layers 6
+and 7 are shared across tasks instead, recovering 25–48% on all three. The
+pattern replicates on Mistral-7B and DeepSeek-R1-Distill, and holds when the
+quantization method is switched from NF4 to GPTQ. A surgical model that keeps
+just 6 of 32 layers at full precision reaches statistical equivalence with
+FP16 while using 42% of its memory. Weight-space SQNR, checked as a negative
+control, is uncorrelated with functional importance (ρ = +0.025, not
+significant) — the inversion is specific to the Hessian trace, not an
+artifact of measuring quantization error in general.
+
+<Figure
+  src="/figures/quant-dissociation.webp"
+  alt="Cross-task interference matrix showing recovery rate heatmaps and accuracy bars for five patching configurations across GSM8K, ARC-Challenge, and MATH."
+  caption="The GSM8K-optimal attention patch (layers 13–14) transfers at 0% to ARC; the ARC-optimal MLP patch (layers 6–7) transfers at 47.9% to GSM8K. Attention and MLP circuits are dissociated by task, not merely by recovery magnitude."
+  width={1600}
+  height={626}
+/>
+
+## Limitations
+
+The study covers only instruction-tuned, Pre-LN/RMSNorm transformers.
+Base-model replication was attempted on OPT-6.7B and Pythia-6.9B, but
+zero-shot ARC scored below chance on both (22% and 19%), which rules out
+accuracy-based restoration ranking for non-instruction-tuned models. The
+recovery metric is bounded by small flip-sets — 31 examples for GSM8K, 36 for
+ARC, 24 for MATH — which leaves MATH underpowered rather than establishing
+that it is precision-insensitive. The HESS-6 baseline used for the
+head-to-head comparison ranks layers by activation-covariance trace alone;
+it isolates the bit-allocation signal that GPTQ, OmniQuant, and ResQ share,
+not a full production allocator, which in deployed systems also folds in
+outlier protection and kernel-fused dequantization. Bootstrap confidence
+intervals on ρ and per-task recovery are deferred to camera-ready.
