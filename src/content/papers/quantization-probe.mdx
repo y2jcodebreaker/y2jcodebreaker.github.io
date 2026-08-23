@@ -13,24 +13,11 @@ order: 2
 
 ## The question
 
-GPTQ, OmniQuant, and ResQ allocate bit-width across layers using the
-activation-covariance Hessian trace as a per-layer sensitivity signal: layers
-with larger activation norms are judged more sensitive and are given more
-bits. The premise is that this proxy tracks which layers matter functionally.
-None of the three methods tests that premise against task performance —
-only against reconstruction error.
+Four-bit quantization is what lets an eight-billion-parameter model run on a single consumer GPU, taking Llama-3.1-8B from roughly 16 GB to 5.6 GB. It also costs accuracy, and the standard remedy is mixed precision: hold a handful of layers at full precision and compress the rest. Which layers is the only decision.
 
-## The approach
+GPTQ, OmniQuant and ResQ all rank layers by the activation-covariance Hessian trace — a per-layer scalar amounting to the mean squared norm of the inputs a layer receives — and protect the layers scoring highest. The premise is that numerical sensitivity stands in for functional importance: a layer fed large inputs is a layer whose errors matter.
 
-Quantization is treated as a controlled perturbation probe, the way a focal
-lesion is used in neuroscience to identify which region supports which
-function. The model is fully NF4-quantized, then FP16 weights are surgically
-restored to one sub-layer at a time — one of 32 attention projections or 32
-MLP blocks — and task accuracy is measured after each restoration. Recovery
-is conditioned on forward-flipped examples: the subset of a benchmark correct
-under FP16 but wrong under 4-bit. Conditioning on the flip set is what makes
-recovery rates comparable across GSM8K, ARC-Challenge, and MATH despite their
-different absolute accuracies.
+That premise had not been tested against downstream behaviour, and a wrong ranking signal fails quietly. The model still runs, perplexity still looks reasonable, and the full-precision budget is spent on layers that were never carrying the computation, with nothing in the usual metrics to indicate it.
 
 <Figure
   src="/figures/quant-hessian-inversion.webp"
@@ -40,42 +27,42 @@ different absolute accuracies.
   height={1171}
 />
 
-## What was found
+## The approach
 
-Restoration rank across all 64 sub-layers correlates with Hessian
-sensitivity rank at Spearman ρ = −0.506 (p < 0.001, n = 64): inverted, not
-merely absent. Under Benjamini–Hochberg FDR correction across 192 tests, the
-inversion resolves into a clean crossover — no attention layer survives for
-ARC, no MLP layer survives for GSM8K. Attention layers 13 and 14 are
-task-selective: 52.1% GSM8K recovery, under 15% on ARC and MATH. MLP layers 6
-and 7 are shared across tasks instead, recovering 25–48% on all three. The
-pattern replicates on Mistral-7B and DeepSeek-R1-Distill, and holds when the
-quantization method is switched from NF4 to GPTQ. A surgical model that keeps
-just 6 of 32 layers at full precision reaches statistical equivalence with
-FP16 while using 42% of its memory. Weight-space SQNR, checked as a negative
-control, is uncorrelated with functional importance (ρ = +0.025, not
-significant) — the inversion is specific to the Hessian trace, not an
-artifact of measuring quantization error in general.
+The method treats quantization as a controlled perturbation rather than an error to be minimised — the move a lesion study makes in neuroscience: damage one component, observe which function breaks, and infer what that component was doing. Here the entire network is quantized to 4-bit NF4 first, leaving the model uniformly impaired. Full precision is then restored to exactly one sub-layer, and the measurement is how much task performance returns. Each of the 64 sub-layers of Llama-3.1-8B — 32 attention and 32 MLP — is measured this way on GSM8K, ARC-Challenge and MATH.
+
+Recovery is conditioned on forward-flipped examples: items the full-precision model answers correctly and the 4-bit model gets wrong. Those are the items quantization demonstrably broke. The conditioning also makes rates comparable across benchmarks. Absolute accuracy differs considerably across the three, so a raw two-point delta means something different on each; as a fraction of the damage available to repair, the numbers sit on one scale.
+
+What makes this diagnostic rather than optimisation is that nothing is tuned: no training, no search over configurations, and every measurement starts from a fresh copy of the quantized model, so restorations cannot compound or interact in an order-dependent way. The output is a map of which sub-layers carry which functions under compression. The mixed-precision model that follows is a consequence of reading that map, not the objective.
 
 <Figure
   src="/figures/quant-dissociation.webp"
   alt="Cross-task interference matrix showing recovery rate heatmaps and accuracy bars for five patching configurations across GSM8K, ARC-Challenge, and MATH."
-  caption="The GSM8K-optimal attention patch (layers 13–14) transfers at 0% to ARC; the ARC-optimal MLP patch (layers 6–7) transfers at 47.9% to GSM8K. Attention and MLP circuits are dissociated by task, not merely by recovery magnitude."
+  caption="The GSM8K-optimal attention patch (layers 13–14) transfers at 8.3% to ARC-Challenge; the ARC-optimal MLP patch (layers 6–7) transfers at 47.9% to GSM8K. Attention and MLP circuits are dissociated by task, not merely by recovery magnitude."
   width={1600}
   height={626}
 />
 
+## What was found
+
+The ranking signal is not weakly informative. Restoration rank and Hessian sensitivity rank correlate at **ρ = −0.506** across all 64 sub-layers of Llama-3.1-8B — inverted, not absent. Per task the correlation is −0.483 on GSM8K, −0.535 on ARC-Challenge and −0.256 on MATH. Weight-space SQNR, a different numerical criterion, correlates at +0.025 and cannot be distinguished from zero — the failure is not peculiar to the Hessian trace.
+
+The second result is the more interesting one. Under Benjamini-Hochberg correction across 192 tests, no attention sub-layer reaches significance for ARC-Challenge and no MLP sub-layer for GSM8K. Attention layers 13 and 14 recover about half the arithmetic damage while contributing under 15% to the other two benchmarks; early MLP layers 6 and 7 recover across all three. The two families are dissociated by task rather than ordered on one axis of importance.
+
+The dead zone was a prediction confirmed. Deep attention layers in Pre-LN transformers accumulate large activation norms while contributing little to the residual stream, which is the Curse of Depth; restoring them recovers exactly zero on ARC-Challenge across layers 15 to 31. The dissociation was an observation, not something the framework anticipated.
+
+The pattern survives changes of model and quantizer. Mistral-7B gives ρ = −0.574 over its own 64 sub-layers. DeepSeek-R1-Distill reproduces the layer-13 attention result at 42.6% GSM8K recovery. Under GPTQ rather than NF4, layer-14 attention recovers 46.4% on GSM8K and 3.6% on ARC-Challenge.
+
+Reading the map gives a deployable artefact: six of 32 sub-layers at full precision, statistically indistinguishable from the full-precision model on all three benchmarks (p > 0.05, Cohen's d ≤ 0.12), at **42%** of its memory and 106 tokens per second against 101 for the fully quantized baseline. Constrained to an identical six-layer budget, the Hessian-selected six recover **2.6%** of ARC-Challenge damage, indistinguishable from no intervention, while the probe-selected six recover most of it; the direct comparison gives p = 0.001.
+
 ## Limitations
 
-The study covers only instruction-tuned, Pre-LN/RMSNorm transformers.
-Base-model replication was attempted on OPT-6.7B and Pythia-6.9B, but
-zero-shot ARC scored below chance on both (22% and 19%), which rules out
-accuracy-based restoration ranking for non-instruction-tuned models. The
-recovery metric is bounded by small flip-sets — 31 examples for GSM8K, 36 for
-ARC, 24 for MATH — which leaves MATH underpowered rather than establishing
-that it is precision-insensitive. The HESS-6 baseline used for the
-head-to-head comparison ranks layers by activation-covariance trace alone;
-it isolates the bit-allocation signal that GPTQ, OmniQuant, and ResQ share,
-not a full production allocator, which in deployed systems also folds in
-outlier protection and kernel-fused dequantization. Bootstrap confidence
-intervals on ρ and on the per-task recovery rates are not yet computed.
+Everything tested is a Pre-LN instruction-tuned transformer with RMSNorm. Whether the inversion holds for Post-LN or DeepNorm architectures is unknown. Base-model replication was attempted on OPT-6.7B and Pythia-6.9B and failed for a mundane reason: both score below chance on zero-shot ARC-Challenge, at 22% and 19%, which leaves nothing correct to flip and so nothing to measure. Log-likelihood scoring would be the way to reach them.
+
+The recovery metric is bounded by how many examples actually flip — 31 on GSM8K, 36 on ARC-Challenge, 24 on MATH. MATH is underpowered at that count and no sub-layer survives correction there, so its results are inconclusive rather than negative.
+
+The Hessian-guided baseline ranks layers by the activation-covariance trace alone. Deployed allocators do more — OBS-style updates, PCA decomposition, group-wise scaling, outlier handling — so the comparison isolates the bit-allocation signal and does not establish what any production system would select at the same budget.
+
+The throughput figure is single-batch decoding on one GPU rather than a batched-serving measurement, and should not be read as a deployment benchmark.
+
+Bootstrap intervals on ρ and on the per-task recovery rates are not yet computed.
