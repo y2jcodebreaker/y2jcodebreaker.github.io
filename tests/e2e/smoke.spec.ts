@@ -28,7 +28,7 @@ const REVIEW_STATUS_TERMS = [
   'anonymity period',
 ];
 
-for (const path of ['/', '/cv', '/papers/cad', '/papers/logiqate', '/papers/quantization-probe']) {
+for (const path of ['/', '/cv', '/colophon', '/papers/cad', '/papers/logiqate', '/papers/quantization-probe']) {
   test(`no review-status disclosure anywhere in ${path}`, async ({ page }) => {
     await page.goto(path);
 

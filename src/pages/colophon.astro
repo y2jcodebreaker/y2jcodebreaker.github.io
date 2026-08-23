@@ -1,0 +1,56 @@
+---
+import Base from '../layouts/Base.astro';
+import { loadProfile } from '../lib/data';
+
+const profile = loadProfile();
+---
+<Base
+  title={`Colophon — ${profile.name}`}
+  description={`How this site is built, and how its claims are checked.`}
+>
+  <p class="back"><a href="/">← {profile.name}</a></p>
+
+  <h1>Colophon</h1>
+
+  <h2>Sources and verification</h2>
+
+  <p>
+    Every figure quoted on this site is taken from the paper it describes and
+    checked against that paper's own tables and text. Where a claim could not be
+    supported by the source, it was removed rather than softened: two results
+    that appear on earlier versions of my CV are absent here for that reason.
+  </p>
+
+  <p>
+    Writing on this site is my own. I use AI tools for editing and for code
+    assistance, as disclosed in the papers themselves where a venue requires it.
+    References and reported numbers are verified against primary sources by hand
+    before anything is published.
+  </p>
+
+  <h2>How it is built</h2>
+
+  <p>
+    Static HTML generated with <a href="https://astro.build">Astro</a>, served
+    from GitHub Pages. No client-side JavaScript, no analytics, no cookies, and
+    no third-party requests of any kind — the fonts are self-hosted.
+  </p>
+
+  <p>
+    Set in <a href="https://github.com/adobe-fonts/source-serif">Source Serif 4</a>,
+    subset to the glyphs this site actually uses. Figures are converted from the
+    papers' own LaTeX sources.
+  </p>
+
+  <p>
+    Paper metadata lives in typed content files validated at build time. Two of
+    those checks exist to prevent specific mistakes: one refuses to build if a
+    preprint names a venue, and one requires any percentage or decimal shown on
+    the site to record which section of which paper it came from.
+  </p>
+</Base>
+
+<style>
+  .back { font-size: var(--size-sm); margin-bottom: var(--space-3); }
+  h2 { margin-top: var(--space-4); margin-bottom: var(--space-1); }
+</style>

@@ -28,6 +28,7 @@ const contactLinks = [
   profile.links.github ? { href: profile.links.github, label: 'GitHub' } : null,
   profile.links.orcid ? { href: profile.links.orcid, label: 'ORCID' } : null,
   { href: `mailto:${profile.email}`, label: profile.email },
+  { href: '/colophon', label: 'Colophon' },
 ].filter(Boolean) as { href: string; label: string }[];
 ---
 <Base title={profile.name} description={profile.positioning}>
