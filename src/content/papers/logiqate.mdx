@@ -7,9 +7,9 @@ thread: reasoning
 status: published
 venue: EACL 2026
 tldr: >-
-  Frontier models lose up to 86% accuracy when a problem is restated in a
-  logically equivalent form. Confidence collapses in late layers.
-source: "Figure 2 (zero-shot relative accuracy); Section 5, layer-wise analysis"
+  Restating a problem in a logically equivalent form costs frontier models
+  28.8% accuracy on average. Undergraduates lose almost nothing.
+source: "Introduction, six-model mean across four tasks and three prompting settings; human baseline in Results"
 order: 1
 code: https://github.com/abhilekhborah/logical-obfuscation
 data: https://huggingface.co/datasets/abhilekhborah/LogiQAte
@@ -17,17 +17,28 @@ data: https://huggingface.co/datasets/abhilekhborah/LogiQAte
 
 ## The question
 
-A model that answers a logic puzzle correctly may have reasoned about it, or
-may have seen it before. Standard benchmarks score only the final answer, so
-both look identical.
+When a language model answers a logic puzzle correctly, two very different
+things might have happened. It might have derived the answer. Or it might have
+seen the puzzle before.
+
+Standard benchmarks cannot tell these apart, because they score only the final
+answer. MMLU, BIG-Bench Hard and ARC all reward the right output regardless of
+how it was reached, which means a model can score well on surface recall alone.
+Nothing in them asks whether the *same* problem, restated so that its logical
+structure is untouched but its wording is unrecognisable, still gets solved.
+
+That gap is narrow but consequential. Prior benchmarks that vary their problems
+— GSM-Symbolic, for instance — swap entities and values while leaving the
+reasoning template fixed. They test generalisation across instantiations of one
+logical form. The question here is the inverse: hold the truth conditions
+constant and vary the logical form itself.
 
 ## The approach
 
-Logifus rewrites a problem into a different surface form while preserving its
-logical structure — "D is the father of F" becomes "D is the grandfather's
-only son of F". LogiQAte applies this across 1,108 questions and four task
-types: first-order logic entailment, family-graph reasoning, numeric pattern
-induction, and navigation.
+Logifus is an obfuscation function that maps a question to a logically
+equivalent counterpart. Because the two versions are equivalent, they share a
+correct answer by construction — so any drop in accuracy is a fact about the
+model, not about the problem.
 
 <Figure
   src="/figures/logiqate-intro.webp"
@@ -37,11 +48,33 @@ induction, and navigation.
   height={963}
 />
 
+Each of four task types gets its own transformation. First-order logic premises
+are rewritten through chained equivalences — De Morgan's laws, contraposition,
+double-negation elimination — so that "if it rains, the ground gets wet" becomes
+"the ground does not stay dry whenever it rains." Kinship statements are
+replaced by indirect multi-hop descriptions, turning "A is the brother of B"
+into "A is the sister-in-law's husband of B," and at the harder level into
+chains four relations deep. Numeric sequences are re-encoded through a
+deterministic pipeline: digits become planet names, planet names become ASCII
+sums, ASCII sums become MD5 hashes. Navigation problems are padded with
+self-cancelling detours whose vectors sum to zero, leaving net displacement
+unchanged.
+
+Equivalence is verified rather than assumed. For the first-order logic split,
+the Prover9 theorem prover checks entailment formally before any human sees the
+item. Every question in every split is then validated by two independent
+annotators, with Cohen's κ between 0.88 and 0.95 depending on the task.
+
+The result is LogiQAte: 1,108 questions across the four splits — 272 logic, 300
+kinship, 284 numeric, 252 navigation. Ten models were evaluated in total,
+across zero-shot, few-shot and chain-of-thought prompting at temperature 0.0,
+scored by exact match after normalisation.
+
 ## What was found
 
-Performance degrades consistently under rewriting. Memorization detection
-rates rise sharply on obfuscated items, and layer-wise next-token confidence
-collapses in the late layers where reasoning would be expected to consolidate.
+Averaged across four tasks and three prompting settings, six frontier models
+lose **28.8%** accuracy when a problem is restated equivalently. Zero-shot, the
+per-model picture is worse: GPT-4o falls 47.6%, GPT-5 27.0%, o4-mini 21.4%.
 
 <Figure
   src="/figures/logiqate-degradation.webp"
@@ -51,8 +84,47 @@ collapses in the late layers where reasoning would be expected to consolidate.
   height={483}
 />
 
+The single most useful number is not a model's. Two undergraduate annotators
+scored up to **99%** on both the original and the rewritten questions. The
+rewrites are not hard. They are only hard for models — which is what separates
+a genuine robustness failure from a benchmark that is simply difficult.
+
+Reasoning-tuned models degrade less than general-purpose ones — roughly 20–30%
+against 45–50% — but none is immune, and chain-of-thought helps unevenly.
+Numeric obfuscation is the most destructive: under symbolic substitution,
+several models collapse to near-zero.
+
+Two mechanistic analyses on LLaMA 3.1 8B suggest why. A Min-K%++ membership
+test finds that obfuscated kinship questions are *more* detectable as memorised
+content than their originals, AUROC rising from 55–60% to 82% at the harder
+obfuscation level — consistent with models leaning harder on recall exactly
+when the surface form stops matching what they recall. And layer-wise
+next-token confidence in layers 28–31, where semantic consolidation is expected
+to happen, is suppressed by 50–75% on kinship items and over 80% on logic
+items.
+
+Manual inspection of GPT-5's traces shows the failures are usually localised
+rather than total. On one numeric item the model decoded the MD5 hashes
+correctly, identified the underlying pattern correctly, computed the right
+intermediate value — then continued the sequence past the point it needed and
+reported the wrong term.
+
 ## Limitations
 
-Obfuscation is generated algorithmically, so difficulty is not controlled
-independently of surface form. The four task types are drawn from structured
-reasoning problems and do not cover open-ended reasoning.
+The benchmark is English-only, and covers four reasoning categories. Extending
+it to other languages, particularly low-resource ones, and to categories such
+as seating arrangements and commonsense inference remains open, as does moving
+from fixed transformations to adaptive ones that respond to a model's
+particular weaknesses.
+
+The mechanistic results carry a narrower scope than the accuracy results. Both
+the memorization test and the layer-wise analysis ran on a single open model,
+LLaMA 3.1 8B, chosen because the analyses require access to internal
+activations that the frontier APIs do not expose. They are a plausible
+mechanism for the degradation measured elsewhere, not a demonstration that the
+same mechanism operates inside GPT-5 or Claude.
+
+Obfuscation difficulty is also not controlled independently of surface form. A
+rewrite that is longer, or that stacks four transformations rather than one, is
+harder in more than one way at once, and the design does not separate those
+factors.
