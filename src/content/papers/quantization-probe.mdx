@@ -45,9 +45,9 @@ What makes this diagnostic rather than optimisation is that nothing is tuned: no
 
 ## What was found
 
-The ranking signal is not weakly informative. Restoration rank and Hessian sensitivity rank correlate at **ρ = −0.506** across all 64 sub-layers of Llama-3.1-8B — inverted, not absent. Per task the correlation is −0.483 on GSM8K, −0.535 on ARC-Challenge and −0.256 on MATH. Weight-space SQNR, a different numerical criterion, correlates at +0.025 and cannot be distinguished from zero — the failure is not peculiar to the Hessian trace.
+The ranking signal is not weakly informative. Restoration rank and Hessian sensitivity rank correlate at **ρ = −0.506** across all 64 sub-layers of Llama-3.1-8B — inverted, not absent. Per task the correlation is −0.483 on GSM8K, −0.535 on ARC-Challenge and −0.255 on MATH. Weight-space SQNR, a different numerical criterion, correlates at +0.025 and cannot be distinguished from zero — the failure is not peculiar to the Hessian trace.
 
-The second result is the more interesting one. Under Benjamini-Hochberg correction across 192 tests, no attention sub-layer reaches significance for ARC-Challenge and no MLP sub-layer for GSM8K. Attention layers 13 and 14 recover about half the arithmetic damage while contributing under 15% to the other two benchmarks; early MLP layers 6 and 7 recover across all three. The two families are dissociated by task rather than ordered on one axis of importance.
+The second result is the more interesting one. Under Benjamini-Hochberg correction across 192 tests, no attention sub-layer reaches significance for ARC-Challenge and no MLP sub-layer for GSM8K. Attention layers 13 and 14 recover **48.4%** and **51.6%** of the arithmetic damage on their own, while contributing between 2.8% and 12.5% on the other two benchmarks; early MLP layers 6 and 7 recover across all three. The two families are dissociated by task rather than ordered on one axis of importance.
 
 The dead zone was a prediction confirmed. Deep attention layers in Pre-LN transformers accumulate large activation norms while contributing little to the residual stream, which is the Curse of Depth; restoring them recovers exactly zero on ARC-Challenge across layers 15 to 31. The dissociation was an observation, not something the framework anticipated.
 
