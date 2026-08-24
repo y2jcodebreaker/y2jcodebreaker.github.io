@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://kedarjoshi.github.io/sitemap-index.xml
+Sitemap: https://y2jcodebreaker.github.io/sitemap-index.xml

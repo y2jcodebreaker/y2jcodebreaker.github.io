@@ -3,7 +3,7 @@ import mdx from '@astrojs/mdx';
 import sitemap from '@astrojs/sitemap';
 
 export default defineConfig({
-  site: 'https://kedarjoshi.github.io',
+  site: 'https://y2jcodebreaker.github.io',
   base: '/',
   output: 'static',
   integrations: [mdx(), sitemap()],
