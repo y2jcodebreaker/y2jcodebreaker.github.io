@@ -1,14 +1,30 @@
 ---
+import { getCollection } from 'astro:content';
 import Base from '../layouts/Base.astro';
+import AuthorList from '../components/AuthorList.astro';
 import { loadCv, loadProfile } from '../lib/data';
+import { isRendered } from '../lib/papers';
 
 const profile = loadProfile();
 const cv = loadCv();
 
+// Publications come from the papers collection — the same source the homepage
+// uses — so this page cannot drift out of step with it.
+const papers = (await getCollection('papers'))
+  .filter((e) => isRendered(e.data))
+  // Same order as the PDF: papers before the patent; within a year, fewer
+  // authors first, so sole-authored work leads.
+  .sort((a, b) =>
+    (Number(a.data.status === 'patent') - Number(b.data.status === 'patent')) ||
+    (b.data.year - a.data.year) ||
+    (a.data.authors.length - b.data.authors.length));
+
+const statusLabel = (p: (typeof papers)[number]['data']) =>
+  p.status === 'published' ? p.venue : p.status === 'patent' ? 'Patent filed' : 'Preprint';
+
 const sections = [
   { title: 'Education', entries: cv.education },
   { title: 'Experience', entries: cv.experience },
-  { title: 'Certifications', entries: cv.certifications },
 ];
 ---
 <Base title={`CV — ${profile.name}`} description={`Curriculum vitae for ${profile.name}`}>
@@ -16,6 +32,20 @@ const sections = [
 
   <h1>Curriculum Vitae</h1>
   <p class="muted download"><a href="/cv.pdf">Download PDF</a></p>
+
+  <section>
+    <h2>Publications</h2>
+    {papers.map((entry) => (
+      <div class="entry">
+        <h3 class="entry-head">
+          {entry.data.title}
+          <span class="dates muted">{statusLabel(entry.data)}</span>
+        </h3>
+        <AuthorList paper={entry.data} />
+        <p class="sub">{entry.data.tldr}</p>
+      </div>
+    ))}
+  </section>
 
   {sections.map((section) => section.entries.length > 0 && (
     <section>

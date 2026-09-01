@@ -19,23 +19,21 @@ experience:
       - LLM reasoning robustness and mechanistic interpretability.
   - heading: India Meteorological Department, Bhopal
     subheading: Research Intern
-    dates: Nov 2024 – Present
+    dates: Nov 2024 – Feb 2025
     bullets:
       - Physics-informed neural architecture search for radar wind reconstruction.
 
 skills:
-  - label: Languages
-    items: [Python, C]
-  - label: Frameworks
-    items: [PyTorch, TensorFlow, HuggingFace Transformers]
-  - label: Libraries
-    items: [NumPy, Pandas, scikit-learn, OpenCV, Matplotlib, Unsloth]
+  - label: Languages & Tools
+    items: [Python, C, PyTorch, TensorFlow, CUDA, Git, Prover9]
   - label: Areas
     items:
       - LLM evaluation
       - Mechanistic interpretability
+      - Quantization
       - Physics-informed neural networks
       - Neural architecture search
+      - Benchmark development
 
 certifications:
   - heading: Generative AI with Large Language Models
