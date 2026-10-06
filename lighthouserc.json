@@ -2,7 +2,7 @@
   "ci": {
     "collect": {
       "staticDistDir": "./dist",
-      "url": ["http://localhost/index.html", "http://localhost/papers/cad/index.html"],
+      "url": ["http://localhost/index.html", "http://localhost/papers/debiasing-scores/index.html"],
       "numberOfRuns": 3
     },
     "assert": {
