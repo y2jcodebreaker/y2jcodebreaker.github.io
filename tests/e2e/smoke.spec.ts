@@ -21,6 +21,7 @@ const REVIEW_STATUS_TERMS = [
   'iclr',
   'emnlp',
   'under review',
+  'rolling review',
   'submitted for',
   'in submission',
   'camera-ready',
@@ -28,7 +29,7 @@ const REVIEW_STATUS_TERMS = [
   'anonymity period',
 ];
 
-for (const path of ['/', '/cv', '/colophon', '/papers/cad', '/papers/logiqate', '/papers/quantization-probe']) {
+for (const path of ['/', '/cv', '/colophon', '/papers/debiasing-scores', '/papers/logiqate', '/papers/quantization-probe']) {
   test(`no review-status disclosure anywhere in ${path}`, async ({ page }) => {
     await page.goto(path);
 
@@ -42,12 +43,12 @@ for (const path of ['/', '/cv', '/colophon', '/papers/cad', '/papers/logiqate', 
 }
 
 test('the preprint renders its status label', async ({ page }) => {
-  await page.goto('/papers/cad');
-  await expect(page.getByText('Preprint')).toBeVisible();
+  await page.goto('/papers/debiasing-scores');
+  await expect(page.locator('article .meta')).toContainText('Preprint');
 });
 
 test('paper detail pages resolve', async ({ page }) => {
-  for (const slug of ['logiqate', 'cad']) {
+  for (const slug of ['logiqate', 'debiasing-scores']) {
     const response = await page.goto(`/papers/${slug}`);
     expect(response?.status()).toBe(200);
   }

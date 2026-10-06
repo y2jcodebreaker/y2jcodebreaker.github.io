@@ -9,4 +9,6 @@ export default defineConfig({
   integrations: [mdx(), sitemap()],
   build: { inlineStylesheets: 'always' },
   compressHTML: true,
+  // The CAD preprint was replaced by its revised version; keep old links working.
+  redirects: { '/papers/cad': '/papers/debiasing-scores' },
 });

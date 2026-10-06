@@ -1,0 +1,119 @@
+---
+title: "When Debiasing Scores Reward Broken Text: Measuring and Steering the Medicalization of Disability"
+authors: ["Kedar Joshi", "Kripabandhu Ghosh"]
+firstAuthor: true
+year: 2026
+thread: representations
+status: preprint
+tldr: >-
+  Automatic bias scores reward broken text. Judged directly, steering against a
+  model's own medicalizing answers reduces medicalization without erasing the
+  disability.
+order: 1
+---
+
+## The question
+
+Ask a language model for tips on traveling alone, and it gives travel tips. Ask
+the same question as a person with a developmental disorder, and the answer often
+begins by telling you to consult your healthcare provider and pack a medical kit.
+This is the medicalization of disability: treating the user's disability as a
+medical matter when the question was not about health. The answer is polite and
+helpful in tone, and it still treats the user as a patient.
+
+Activation steering, which edits a model's internal activations while it
+generates, is increasingly used against social bias, and whether it works is
+usually decided by an automatic score. This work asks whether those scores can
+see this kind of harm at all, and what a steering method looks like once it is
+judged by a measure that can.
+
+<Figure
+  src="/figures/fcs-teaser.webp"
+  alt="Three panels. (a) One question answered three ways: the unsteered answer gives medical advice, the CAD projection drops the disability, and FCS keeps the disability without medical advice. (b) A scatter plot of each method's gain on a word-count score against its judged reduction in medicalization. (c) A sketch of how FCS builds its direction and a bar chart of its effect on two models."
+  caption="(a) Llama-3.1-8B answers to one AccessEval question, with ratings from three LLM judges on a 0 to 3 scale. (b) Each steering method's gain on a word-count debiasing score against its judged reduction in medicalization; open circles remove at least a quarter of the mentions of the user's disability. (c) FCS removes the direction between the model's own medicalizing and clean answers; bars show the change in judged medicalization on two models, with 95% intervals."
+  width={1695}
+  height={656}
+/>
+
+## The approach
+
+The work runs in three steps, each motivated by the one before.
+
+First, test the scores. Two kinds are common: counts of words from a lexicon,
+here a word-list score from our own earlier version of this work, and the
+sentiment and regard scorers (VADER and Regard) that the AccessEval benchmark
+itself uses.
+
+Second, measure the framing directly: a fixed rubric applied by three LLM judges
+from three model families, an erasure check that asks whether the answer still
+mentions the user's disability, and a separate judge of answer quality.
+
+Third, design a steering method around what the measure shows. Existing methods
+find their direction by contrasting inputs, the question with and without the
+disability. That direction captures every way the two answers differ, including
+the mention itself. Framing-contrast steering (FCS) contrasts outputs instead: the
+model's own answers to disability questions, labelled by the judges as
+medicalizing or clean. Both sides mention the disability and differ in how they
+frame it. FCS removes that direction at two layers during generation with an
+exact projection. There is no training and no tuning on the evaluation set.
+
+Every experiment was pre-registered, with its outcomes named before the data
+existed, including the ones that went against us.
+
+## What was found
+
+The scores fail. The word-list score is driven mostly by one word the model
+echoes from the user's disability name. Word salad beats four of the five
+steering methods on it, and inserting one unrelated sentence into every answer
+beats all of them (d = 1.17, against 0.74 for the best method) while the judges
+see slightly more medicalization. VADER barely tracks medicalization, and Regard
+prefers word salad to real answers.
+
+Measured directly, five steering methods (CAA, Angular Steering, FairSteer, SADI
+and the CAD projection from our earlier version) either leave medicalization
+unchanged or reduce it while removing 31 to 69 percent of the mentions of the
+user's disability. A one-sentence prompt asking the model not to assume medical
+needs is a strong baseline on Llama-3.1-8B.
+
+FCS lowers judged medicalization on Llama-3.1-8B by 0.22 and 0.12 points on the
+two primary judges, and by 0.15 on a third judge never used for fitting, while
+keeping the disability, the answer quality and the perplexity. The reduction is
+about the size of CAA's, without CAA's loss of quality or of disability mentions.
+It beats directions fit on shuffled labels, adds to the explicit prompt, and
+replicates on Mistral-7B, where the prompt alone does nothing.
+
+<Figure
+  src="/figures/fcs-reduction-vs-erasure.webp"
+  alt="Scatter plot of medicalization reduced against the share of disability mentions removed, for each method on Llama-3.1-8B and Mistral-7B. FCS sits in the shaded region of low erasure with a positive reduction."
+  caption="Each method on the two axes that matter: medicalization reduced (vertical; mean of the two primary judges, higher is better) against the share of the user's disability mentions removed (horizontal; left is better). Circles: Llama-3.1-8B; squares: Mistral-7B. Open red markers lose at least one answer-quality point."
+  width={912}
+  height={818}
+/>
+
+## Limitations
+
+The effect is modest: about 10 of 211 items move from medicalizing to clean on
+both primary judges, and on Llama the reduction is comparable to CAA's and the
+explicit prompt's. The advantage of FCS is in what it does not cost. The study
+steers two 7 to 8 billion parameter models on English questions from one
+benchmark, with one generation seed per condition, and its evaluation set of 50
+questions leaves the intervals wide.
+
+The measure rests on LLM judges, two of which also label the data FCS is fit on.
+A calibrated human study with two student raters found the judges stricter than
+lay readers, and its human-judge correlations fell below the pre-registered bar,
+so the judges are not claimed to be validated by people. Steering alone was not
+shown to carry over to new questions, and on Mistral a shuffled-label direction
+also reduced medicalization, though only while erasing the disability. The
+critique covers our own word-list score and the use of AccessEval's metrics as a
+measure of medicalization, not what those metrics were designed for.
+
+## Earlier version
+
+This page replaces an earlier preprint, *Contrastive Activation Decomposition*,
+which argued that the spectrum of contrastive activation differences prescribes
+the rank of a steering intervention, and which reported its results on the
+word-list score above. Controls showed that the spectral statistic depends on how
+the contrast set is built, and under the direct measure the CAD projection removes
+the user's disability rather than the medical framing. Those claims are
+withdrawn, and the earlier PDF is no longer posted.
