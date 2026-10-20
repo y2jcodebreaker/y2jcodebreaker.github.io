@@ -6,7 +6,7 @@ thread: representations
 status: preprint
 tldr: >-
   The Hessian signal GPTQ-family methods use to allocate precision is inverted
-  (ρ = −0.506): the layers they protect sit in a functional dead zone.
+  (ρ = −0.497): the layers they protect sit in a functional dead zone.
 source: "Section 5.6, Hessian Sensitivity Inversion, n=64"
 order: 2
 pdf: /papers/quantization-probe.pdf
@@ -24,7 +24,7 @@ That premise had not been tested against downstream behaviour, and a wrong ranki
 <Figure
   src="/figures/quant-hessian-inversion.webp"
   alt="Scatter plot of restoration rank against Hessian sensitivity rank for all 64 sub-layers of Llama-3.1-8B, with attention layers as orange circles, MLP layers as purple squares, and a downward-sloping trend line."
-  caption="Restoration rank against Hessian sensitivity rank for all 64 sub-layers: the trend runs the wrong way (ρ = −0.506). Layers the Hessian proxy protects most sit in the functional dead zone; layers it deprioritizes are load-bearing."
+  caption="Restoration rank against Hessian sensitivity rank for all 64 sub-layers: the trend runs the wrong way (ρ = −0.497). Layers the Hessian proxy protects most sit in the functional dead zone; layers it deprioritizes are load-bearing."
   width={1375}
   height={1171}
 />
@@ -40,31 +40,30 @@ What makes this diagnostic rather than optimisation is that nothing is tuned: no
 <Figure
   src="/figures/quant-dissociation.webp"
   alt="Cross-task interference matrix showing recovery rate heatmaps and accuracy bars for five patching configurations across GSM8K, ARC-Challenge, and MATH."
-  caption="The GSM8K-optimal attention patch (layers 13–14) transfers at 8.3% to ARC-Challenge; the ARC-optimal MLP patch (layers 6–7) transfers at 47.9% to GSM8K. Attention and MLP circuits are dissociated by task, not merely by recovery magnitude."
+  caption="The GSM8K-optimal attention patch (layers 13–14) transfers at 8.3% to ARC-Challenge; the ARC-optimal MLP patch (layers 6–7) transfers at 47.9% to GSM8K. The dissociation is between named sub-layers rather than between attention and MLP as classes; the component-level contrast is not itself significant."
   width={1600}
   height={626}
 />
 
 ## What was found
 
-The ranking signal is not weakly informative. Restoration rank and Hessian sensitivity rank correlate at **ρ = −0.506** across all 64 sub-layers of Llama-3.1-8B — inverted, not absent. Per task the correlation is −0.483 on GSM8K, −0.535 on ARC-Challenge and −0.255 on MATH. Weight-space SQNR, a different numerical criterion, correlates at +0.025 and cannot be distinguished from zero — the failure is not peculiar to the Hessian trace.
+The ranking signal is not weakly informative. Restoration rank and Hessian sensitivity rank correlate at **ρ = −0.497** across all 64 sub-layers of Llama-3.1-8B — inverted, not absent. Per task the correlation is −0.403 on GSM8K, −0.562 on ARC-Challenge and −0.477 on MATH, all at p < 0.001. Weight-space SQNR, a different numerical criterion, correlates at +0.032 and cannot be distinguished from zero — the failure is not peculiar to the Hessian trace.
 
-The second result is the more interesting one. Under Benjamini-Hochberg correction across 192 tests, no attention sub-layer reaches significance for ARC-Challenge and no MLP sub-layer for GSM8K. Attention layers 13 and 14 recover **48.4%** and **51.6%** of the arithmetic damage on their own, while contributing between 2.8% and 12.5% on the other two benchmarks; early MLP layers 6 and 7 recover across all three. The two families are dissociated by task rather than ordered on one axis of importance.
+The second result concerns where the effect lives. Under Benjamini-Hochberg correction across 192 tests, 102 comparisons survive: 47 on GSM8K (22 attention, 25 MLP), 43 on MATH, and 12 on ARC-Challenge (3 attention, 9 MLP). Attention layers 13 and 14 together recover **52.1%** of the arithmetic damage while transferring only 8.3% to ARC-Challenge; early MLP layers 6 and 7 reach 36.1% on ARC-Challenge and also 47.9% on GSM8K. The effect localises to *named sub-layers*, not to attention and MLP as classes: the component-level asymmetry runs in the expected direction but does not reach significance (Fisher p = 0.107 within ARC-Challenge), so no claim is made that the two families differ as families.
 
 The dead zone was a prediction confirmed. Deep attention layers in Pre-LN transformers accumulate large activation norms while contributing little to the residual stream, which is the Curse of Depth; restoring them recovers exactly zero on ARC-Challenge across layers 15 to 31. The dissociation was an observation, not something the framework anticipated.
 
 The pattern survives changes of model and quantizer. Mistral-7B gives ρ = −0.574 over its own 64 sub-layers. DeepSeek-R1-Distill reproduces the layer-13 attention result at 42.6% GSM8K recovery. Under GPTQ rather than NF4, layer-14 attention recovers 46.4% on GSM8K and 3.6% on ARC-Challenge.
 
-Reading the map gives a deployable artefact: six of 32 sub-layers at full precision, statistically indistinguishable from the full-precision model on all three benchmarks (p > 0.05, Cohen's d ≤ 0.12), at **42%** of its memory and 106 tokens per second against 101 for the fully quantized baseline. Constrained to an identical six-layer budget, the Hessian-selected six recover **2.6%** of ARC-Challenge damage, indistinguishable from no intervention, while the probe-selected six recover **52.6%**; the direct comparison gives p = 0.001.
+Reading the map gives a deployable artefact: six of 32 sub-layers at full precision, statistically indistinguishable from the full-precision model on all three benchmarks (p > 0.05, per-example Cohen's d ≤ 0.05), at **42%** of its memory and 106 tokens per second against 101 for the fully quantized baseline. At an identical 6-of-32 full-precision budget *and* identical attention/MLP composition, the Hessian-selected six recover **7.7%** of ARC-Challenge damage, indistinguishable from no intervention (p = 0.227 against plain 4-bit), while the probe-selected six recover **53.8%**; the direct comparison gives p = 0.002. Dropping the composition constraint widens the gap to 2.6% against 52.6%, but that version holds only 252M full-precision parameters against 788M, confounding layer identity with a 3.1× smaller budget, so the matched comparison is the one that counts.
 
 ## Limitations
 
 Everything tested is a Pre-LN instruction-tuned transformer with RMSNorm. Whether the inversion holds for Post-LN or DeepNorm architectures is unknown. Base-model replication was attempted on OPT-6.7B and Pythia-6.9B and failed for a mundane reason: both score below chance on zero-shot ARC-Challenge, at 22% and 19%, which leaves nothing correct to flip and so nothing to measure. Log-likelihood scoring would be the way to reach them.
 
-The recovery metric is bounded by how many examples actually flip — 31 on GSM8K, 36 on ARC-Challenge, 24 on MATH. MATH is underpowered at that count and no sub-layer survives correction there, so its results are inconclusive rather than negative.
+The recovery metric is bounded by how many examples actually flip — 32 on GSM8K, 36 on ARC-Challenge, 51 on MATH — so single-layer effects below roughly 3pp are not resolvable. The ranking is also optimistic: selecting the top six sub-layers on one half of the flipped set and scoring them on the other costs 4.6–12.2pp, and the identity of the six is unstable (half-split agreement 0.28–0.56), so the set should be read as one of several near-equivalent ones rather than uniquely optimal.
 
 The Hessian-guided baseline ranks layers by the activation-covariance trace alone. Deployed allocators do more — OBS-style updates, PCA decomposition, group-wise scaling, outlier handling — so the comparison isolates the bit-allocation signal and does not establish what any production system would select at the same budget.
 
 The throughput figure is single-batch decoding on one GPU rather than a batched-serving measurement, and should not be read as a deployment benchmark.
 
-Bootstrap intervals on ρ and on the per-task recovery rates are not yet computed.
