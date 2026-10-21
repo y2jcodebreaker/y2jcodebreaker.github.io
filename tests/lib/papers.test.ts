@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isRendered, sortPapers, groupByThread } from '../../src/lib/papers';
+import { isCitable, isRendered, sortPapers, groupByThread } from '../../src/lib/papers';
 import type { Paper } from '../../src/schemas/paper';
 
 const make = (over: Partial<Paper>): Paper => ({
@@ -17,6 +17,15 @@ describe('isRendered', () => {
   });
   it('includes order zero', () => {
     expect(isRendered(make({ order: 0 }))).toBe(true);
+  });
+});
+
+describe('isCitable', () => {
+  it('excludes in-progress work, which has nothing to cite', () => {
+    expect(isCitable(make({ status: 'in-progress' }))).toBe(false);
+  });
+  it.each(['published', 'preprint', 'patent'] as const)('includes %s work', (status) => {
+    expect(isCitable(make({ status }))).toBe(true);
   });
 });
 

@@ -32,6 +32,43 @@ describe('paperSchema — AAAI-27 venue guard', () => {
   });
 });
 
+describe('paperSchema — in-progress guard', () => {
+  it('rejects in-progress work that names a venue', () => {
+    const result = paperSchema.safeParse({
+      ...base, status: 'in-progress', venue: 'ICLR 2027',
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('accepts in-progress work with no venue', () => {
+    const result = paperSchema.safeParse({ ...base, status: 'in-progress' });
+    expect(result.success).toBe(true);
+  });
+
+  // The status is the thing most likely to go stale: a manuscript appears and
+  // the frontmatter does not change. Linking one is what makes that visible.
+  it('rejects in-progress work that links a PDF', () => {
+    const result = paperSchema.safeParse({
+      ...base, status: 'in-progress', pdf: '/papers/whatever.pdf',
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects in-progress work that links a DOI', () => {
+    const result = paperSchema.safeParse({
+      ...base, status: 'in-progress', doi: 'https://doi.org/10.0000/x',
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('still allows a preprint to link a PDF', () => {
+    const result = paperSchema.safeParse({
+      ...base, status: 'preprint', pdf: '/papers/whatever.pdf',
+    });
+    expect(result.success).toBe(true);
+  });
+});
+
 describe('paperSchema — claim discipline guard', () => {
   it('rejects a percentage claim with no source', () => {
     const result = paperSchema.safeParse({

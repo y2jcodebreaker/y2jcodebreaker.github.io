@@ -9,6 +9,7 @@ const p = entry.data;
 const statusLabel =
   p.status === 'published' ? p.venue :
   p.status === 'patent' ? 'patent filed' :
+  p.status === 'in-progress' ? 'in progress' :
   'preprint';
 
 const links = [

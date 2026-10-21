@@ -1,5 +1,14 @@
 import type { Paper } from '../schemas/paper';
 
+/**
+ * Citation metadata advertises a fixed artifact a reader can go and cite.
+ * In-progress work has none, so emitting `citation_*` tags or ScholarlyArticle
+ * JSON-LD for it would put a paper into indexes that does not exist yet.
+ */
+export function isCitable(paper: Paper): boolean {
+  return paper.status !== 'in-progress';
+}
+
 /** A null order means the entry is authored but deliberately not published. */
 export function isRendered(paper: Paper): boolean {
   return paper.order !== null;

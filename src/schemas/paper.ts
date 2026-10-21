@@ -13,6 +13,9 @@ import { z } from 'zod';
  */
 export const QUANTITATIVE_CLAIM = /%|(?<![A-Za-z0-9.-])\d+\.\d+/;
 
+/** Statuses that describe work with no venue attached, and may never name one. */
+const UNVENUED: ReadonlyArray<'preprint' | 'in-progress'> = ['preprint', 'in-progress'];
+
 export const paperSchema = z
   .object({
     title: z.string().min(1),
@@ -21,7 +24,7 @@ export const paperSchema = z
     firstAuthor: z.boolean().default(false),
     year: z.number().int(),
     thread: z.enum(['reasoning', 'representations', 'physics', 'earlier']),
-    status: z.enum(['published', 'preprint', 'patent']),
+    status: z.enum(['published', 'preprint', 'in-progress', 'patent']),
     venue: z.string().optional(),
     tldr: z.string().max(180),
     source: z.string().optional(),
@@ -32,11 +35,17 @@ export const paperSchema = z
     doi: z.string().optional(),
     bibtex: z.string().optional(),
   })
-  .refine((p) => !(p.status === 'preprint' && p.venue), {
+  .refine((p) => !(UNVENUED.some((s) => s === p.status) && p.venue), {
     message:
-      'A preprint must not name a venue. Non-anonymous material may not reference ' +
+      'Unpublished work must not name a venue. Non-anonymous material may not reference ' +
       'submission status. See AAAI-27 blind review policy.',
     path: ['venue'],
+  })
+  .refine((p) => !(p.status === 'in-progress' && (p.pdf || p.doi)), {
+    message:
+      'Work marked in-progress has no manuscript to point at. A page carrying a PDF or a ' +
+      'DOI is a preprint or a publication — change the status, not the link.',
+    path: ['status'],
   })
   .refine((p) => !QUANTITATIVE_CLAIM.test(p.tldr) || Boolean(p.source), {
     message:

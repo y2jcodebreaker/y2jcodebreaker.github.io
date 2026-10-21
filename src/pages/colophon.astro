@@ -37,14 +37,16 @@ const profile = loadProfile();
   <p>
     Set in <a href="https://github.com/adobe-fonts/source-serif">Source Serif 4</a>,
     subset to the glyphs this site actually uses. Figures are converted from the
-    papers' own LaTeX sources.
+    sources each project plots them from, not redrawn for the web.
   </p>
 
   <p>
-    Paper metadata lives in typed content files validated at build time. Two of
-    those checks exist to prevent specific mistakes: one refuses to build if a
-    preprint names a venue, and one requires any percentage or decimal shown on
-    the site to record which section of which paper it came from.
+    Paper metadata lives in typed content files validated at build time. Three of
+    those checks exist to prevent specific mistakes: one refuses to build if
+    unpublished work names a venue, one requires any percentage or decimal shown
+    on the site to record which section of which paper it came from, and one
+    refuses to let work listed as in progress carry a PDF or a DOI, since a page
+    with either is a preprint and should say so.
   </p>
 </Base>
 

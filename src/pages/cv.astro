@@ -10,7 +10,7 @@ const cv = loadCv();
 
 // Publications come from the papers collection — the same source the homepage
 // uses — so this page cannot drift out of step with it.
-const papers = (await getCollection('papers'))
+const entries = (await getCollection('papers'))
   .filter((e) => isRendered(e.data))
   // Same order as the PDF: papers before the patent; within a year, fewer
   // authors first, so sole-authored work leads.
@@ -19,7 +19,13 @@ const papers = (await getCollection('papers'))
     (b.data.year - a.data.year) ||
     (a.data.authors.length - b.data.authors.length));
 
-const statusLabel = (p: (typeof papers)[number]['data']) =>
+// Unfinished work is listed, and listed apart. A project with no manuscript
+// under a heading that reads "Publications" would be a claim this CV cannot
+// support, which is the one thing a CV may not do.
+const papers = entries.filter((e) => e.data.status !== 'in-progress');
+const inProgress = entries.filter((e) => e.data.status === 'in-progress');
+
+const statusLabel = (p: (typeof entries)[number]['data']) =>
   p.status === 'published' ? p.venue : p.status === 'patent' ? 'Patent filed' : 'Preprint';
 
 const sections = [
@@ -46,6 +52,22 @@ const sections = [
       </div>
     ))}
   </section>
+
+  {inProgress.length > 0 && (
+    <section>
+      <h2>Work in progress</h2>
+      {inProgress.map((entry) => (
+        <div class="entry">
+          <h3 class="entry-head">
+            {entry.data.title}
+            <span class="dates muted">{entry.data.year}</span>
+          </h3>
+          <AuthorList paper={entry.data} />
+          <p class="sub">{entry.data.tldr}</p>
+        </div>
+      ))}
+    </section>
+  )}
 
   {sections.map((section) => section.entries.length > 0 && (
     <section>
