@@ -19,6 +19,7 @@ test('the unrendered paper does not appear', async ({ page }) => {
 const REVIEW_STATUS_TERMS = [
   'aaai',
   'iclr',
+  'icml',
   'emnlp',
   'under review',
   'rolling review',
@@ -29,7 +30,7 @@ const REVIEW_STATUS_TERMS = [
   'anonymity period',
 ];
 
-for (const path of ['/', '/cv', '/colophon', '/papers/debiasing-scores', '/papers/logiqate', '/papers/quantization-probe']) {
+for (const path of ['/', '/cv', '/colophon', '/papers/debiasing-scores', '/papers/logiqate', '/papers/quantization-probe', '/papers/refusal-coupling']) {
   test(`no review-status disclosure anywhere in ${path}`, async ({ page }) => {
     await page.goto(path);
 
@@ -47,8 +48,36 @@ test('the preprint renders its status label', async ({ page }) => {
   await expect(page.locator('article .meta')).toContainText('Preprint');
 });
 
+test('the in-progress project renders its status label', async ({ page }) => {
+  await page.goto('/papers/refusal-coupling');
+  await expect(page.locator('article .meta')).toContainText('Work in progress');
+});
+
+// Citation metadata tells indexers a fixed artifact exists. Emitting it for a
+// project with no manuscript would advertise a paper nobody can read.
+test('the in-progress project emits no citation metadata', async ({ page }) => {
+  await page.goto('/papers/refusal-coupling');
+  const html = await page.content();
+  expect(html).not.toContain('citation_title');
+  expect(html).not.toContain('ScholarlyArticle');
+});
+
+test('a published paper still emits citation metadata', async ({ page }) => {
+  await page.goto('/papers/logiqate');
+  const html = await page.content();
+  expect(html).toContain('citation_title');
+  expect(html).toContain('ScholarlyArticle');
+});
+
+test('the CV keeps in-progress work out of Publications', async ({ page }) => {
+  await page.goto('/cv');
+  const publications = page.locator('section', { has: page.getByRole('heading', { name: 'Publications' }) });
+  await expect(publications).not.toContainText('Coupling, Not Capability');
+  await expect(page.getByRole('heading', { name: 'Work in progress' })).toBeVisible();
+});
+
 test('paper detail pages resolve', async ({ page }) => {
-  for (const slug of ['logiqate', 'debiasing-scores']) {
+  for (const slug of ['logiqate', 'debiasing-scores', 'refusal-coupling']) {
     const response = await page.goto(`/papers/${slug}`);
     expect(response?.status()).toBe(200);
   }

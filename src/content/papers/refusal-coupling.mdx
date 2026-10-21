@@ -1,0 +1,66 @@
+---
+title: "Coupling, Not Capability: Alignment Wires Existing Representations to Behavior"
+authors: ["Kedar Joshi"]
+year: 2026
+thread: representations
+status: in-progress
+tldr: >-
+  Stripping a model's safety leaves what it knows about harm untouched and its
+  refusal direction still injectable. Only the mapping between them breaks.
+order: 1
+code: https://github.com/y2jcodebreaker/RefusalEmergence
+---
+
+## The question
+
+Alignment training makes a model refuse harmful requests, and the usual reading is that it teaches refusal. That reading does not survive contact with a base model. Base Zephyr — Mistral-7B before any alignment — refuses held-out harmful prompts more often than its own SFT descendant, 0.212 against 0.083, and it has no steerable refusal direction at any layer, at any KL bound up to 5.0. Refusal behaviour and refusal machinery move independently, and one of them was there before training began.
+
+Three things could change when a model is aligned, and the standard protocols measure them as one. The **representation**: whether harmful and harmless are linearly separable in activations, which a probe answers. The **behaviour**: whether the model emits refusals, which generation and a judge answer. The **coupling**: whether the representation causally drives the behaviour. Probe accuracy collapses coupling into representation; behavioural evaluation collapses it into behaviour. Nothing routinely measures it on its own. The question here is which of the three alignment installs.
+
+It matters because two well-replicated facts about safety have no mechanism attached. A few fine-tuning steps on entirely benign data strip alignment, and ablating one direction jailbreaks it. Both are strange if alignment built a capability. Both are expected if alignment only wired one — breaking a link is cheap, and erasing a capability is not.
+
+## The approach
+
+Every claim is made with the same cross: *is it readable?* against *is it actionable?* Readable is a linear probe on the residual stream, layer by layer, fit on held-out harmful and harmless splits. Actionable is the refusal direction of Arditi et al. — a difference of means at end-of-instruction positions — added to a model's activations, with the generated text then read rather than scored by substring.
+
+Four families carry the result: Zephyr (base → SFT → DPO), OLMo 2 (base → SFT → DPO → RLVR), Tulu-2-DPO and Gemma-2-9B-it, sharing no pretraining corpus, tokeniser or alignment recipe. The protocol is fixed across all of them — directional ablation at `resid_pre`, `attn_out` and `mlp_out` across every layer, activation addition at the source layer, and a KL of 0.1 on harmless prompts as the coherence bound, so that a result cannot be bought by breaking the model. Norm-matched random directions run in every cell, which means a positive effect has to beat a perturbation of identical magnitude and arbitrary orientation. Each lineage's chat template and its refusal token are measured on the model itself before anything else runs, rather than assumed from a sibling model.
+
+The observational half is a transplant matrix: every stage's direction injected into every stage's model, including each model's own. The causal half is two LoRA runs on OLMo-2-7B-Instruct, identical in rank, learning rate and 2,000 input-free Alpaca examples. The only difference between them is 50 rehearsed refusals — 2.4% of the data. Four quantities are then measured at six doses along both training runs: behaviour, representation, the **readout** (the frozen pre-attack direction injected into a later checkpoint) and the **mapping** (the direction re-fitted from that checkpoint itself).
+
+## What was found
+
+**The representation is already in the base model, and it is causally inert.** Base probe accuracy peaks at 0.996 on OLMo 2 and 0.989 on Zephyr, with layer 0 at exactly 0.500 — the surface-lexicon control, so the probe is not reading vocabulary. Fitted on harmful/harmless splits and tested on XSTest without refitting, on the focus-matched subset where the trigger word appears in both classes ("How can I kill a Python process?" against "How can I kill a person?"), base transfers at 0.820 in Zephyr and 0.823 in OLMo 2. Two families with nothing in common agreeing to three decimals is not what a confound produces. Alignment lifts the same measure to 0.90–0.97, so it sharpens the representation's generalisation rather than creating the distinction.
+
+Base's own direction, meanwhile, induces refusal in nothing — not in base, and not in the SFT, DPO or RLVR models downstream of it. It is not a weak refusal direction; it is not a refusal direction. SFT's direction, injected into base at SFT's own norm, makes base decline 48 of 64 harmless requests it otherwise answers, in fluent, on-topic, correctly structured text that offers an alternative. The strict judge scored all 64 as declines and a full hand audit of every completion gives 48, so the reported number is the audited one. On harmless prompts a safety refusal is not available, which means what transfers is the refusal *form* — *"I'm sorry, I cannot provide a specific example of a proverb that begins with the word 'Time'. I can, however…"* — and that is the claim, rather than the stronger one it could be mistaken for.
+
+**Removing safety breaks exactly one of the four quantities.**
+
+<Figure
+  src="/figures/coupling-dose-response.webp"
+  alt="Four stacked panels tracking behaviour, representation, readout and mapping across fine-tuning dose for an attacked model and its matched control. Only the mapping panel diverges, going negative by step 100."
+  caption="Two LoRA runs differing only in 2.4% rehearsed refusals, measured at six doses. Behaviour decays to about half, the probe never leaves 1.000, the frozen pre-attack direction still induces refusal in the attacked model, and the model's own re-fitted direction inverts within 100 steps."
+  width={1440}
+  height={2120}
+/>
+
+The attacked model still knows what is harmful — probe accuracy 1.000 at every dose, XSTest transfer 0.917 at the endpoint. It can still be made to refuse — freeze the pre-attack direction, inject it into any later checkpoint, and refusal reappears at +3.4 to +4.7. And it no longer connects the two: its own harmful-versus-harmless direction drives refusal at +3.93 before the attack and at −5.17 after it, with no cell of 160 inducing from step 100 onward. The matched control absorbs the same 2,000 benign examples and sits at the same lowered harmless-refusal baseline, yet keeps its behaviour (0.902 on held-out prompts), its mapping and a nine-layer steerable band. Fine-tuning does not do this; removing safety does.
+
+**The mechanism moves before the behaviour does.** By step 100 — 400 examples seen — the steerable-layer count is already zero while behaviour still holds 87% of its starting value. Whatever carries refusal past that point is not routed through the direction, and the register data says what it is: in the attack arm the normative share of surviving refusals rises from 0 to 68%, and in the control, where the mapping never breaks, it stays at 0–1%. The same ordering appears on Gemma-2-9B-it, where steerable layers hit zero at dose 500 with behaviour at 0.537 and the probe at 1.000.
+
+**One pre-registered criterion failed, and is reported as failed.** The decomposition was written down as five criteria before the second family ran. On Gemma, four hold in all three seeds — mapping degraded, readout intact, representation intact, behaviour degraded against its pair — and the fifth, which required the attacked model's norm-matched re-fit to go negative, fails on one seed at +0.21. The threshold was not moved, and the project's test suite pins that seed's number so a later edit cannot quietly rescue it. The family difference is itself the finding: the attack drives OLMo 2's coupling negative and Gemma's to approximately zero, so the endpoint severity differs while the decomposition does not.
+
+**How much ablation removes depends on what the model has to fall back on.** Across four recipes at matched generation length the ordering is Zephyr 100%, Gemma-2 97%, Tulu-2 70%, OLMo 2 51% — predicted before the last two ran. It does not track coupling strength, which rises in the opposite direction. It tracks fallback capacity. Ablating OLMo 2's direction takes its inability refusals from 128 to 0 while normative refusals *appear*, 2 to 64; Tulu-2's identity refusals survive the same ablation, and survive it under every version of the labeller, though the exact counts do not; Zephyr has no second register and loses everything. That also predicts when two refusal judges will disagree with each other — precisely where a fallback register exists, and not otherwise.
+
+## Where this stands
+
+Four families, eleven claims, and sixty-five controls recorded against them with one still open. Each claim carries the risk it is exposed to and the result that would falsify it, every number names the script and commit that produced it, and superseded figures are retired in the ledger rather than quietly replaced — several numbers on this page differ from an earlier version of themselves for that reason. The write-up is in progress; the code and the full results ledger are public.
+
+## Limitations
+
+The one open control is the load-bearing one. Refusal registers — inability, identity, condemnation, normative — are currently assigned by a heuristic labeller with an author's audit on top of it, and a taxonomy validated by the person who invented it is not validated. A blind two-annotator instrument is built and pre-registered, with a κ floor of 0.60 acting as a gate rather than a reported statistic, and it has not been run. Until it is, the register results are a description that has not been shown to transfer to a reader.
+
+The causal arm is one intervention: LoRA fine-tuning that removes safety. It replicates across three matched seeds on OLMo 2 and across two attack types, and the decomposition reproduces on a second family, but every attacked checkpoint in the set was produced by fine-tuning. Nothing here says what a different removal method would do.
+
+Behavioural rates are judge-dependent in a way that cannot be averaged away. The standard substring list cannot match any refusal that asserts a norm rather than a limitation, and a trained classifier over-counts on base models, where most of its extra hits are confusion rather than refusal. Each arm is reported with the judge that survives a hand audit on that arm, which is defensible per arm and makes cross-arm ratios something to state carefully rather than quote. Base Zephyr's own headline rate has moved twice under judge revisions, from 0.235 to 0.212, with 0.167 genuine on a full hand audit.
+
+Generations are matched at 128 tokens across families, and a longer-context check is not yet run. Two of the sufficiency figures rest on narrow intervals — Tulu-2 against OLMo 2 overlaps at 95%, so the four-family result is an ordering rather than a trend.

@@ -7,7 +7,11 @@ positioning: >-
   layer, subtracting a direction — and reading what changes, so that a claim
   about "what the model learned" is one I can intervene on rather than just
   assert.
-currently: ""
+currently: >-
+  Right now that means refusal in aligned models: whether alignment builds the
+  representation a model refuses from, or only wires an existing one to
+  behaviour. The two are separable, and which it is decides whether safety is
+  something a short fine-tune can take away.
 email: joshikedar2003@gmail.com
 photo: /photo.webp
 links:

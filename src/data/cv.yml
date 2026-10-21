@@ -3,7 +3,11 @@ education:
     subheading: MS in Computer Science
     location: Los Angeles, CA
     dates: Aug 2026 – May 2028
-    bullets: []
+    bullets:
+      - >-
+        Independent research on alignment internals: whether alignment installs a
+        refusal representation or only couples an existing one to behaviour.
+        Four model families, pre-registered criteria, public results ledger.
   - heading: Manipal University Jaipur
     subheading: B.Tech in Computer Science, with Distinction
     location: Jaipur, India
@@ -30,6 +34,8 @@ skills:
     items:
       - LLM evaluation
       - Mechanistic interpretability
+      - Alignment and refusal internals
+      - Activation steering and ablation
       - Quantization
       - Physics-informed neural networks
       - Neural architecture search
